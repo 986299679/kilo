@@ -47,6 +47,8 @@ void editorDrawRows();
 int getWindowSize(int *rows, int *cols);
 
 void initEditor();
+
+int getCursorPosition(int *rows, int *cols);
 /* }}} Function headers */
 
 /*** init ***/
@@ -173,15 +175,35 @@ int getWindowSize(int *rows, int *cols)
     if (write(STDOUT_FILENO, "\x1b[999C\x1b[999B", 12) != 12) {
       return -1;
     }
-    // Just to keep from return, here just for test can get to the right-battom corner
-    editorReadKey();
 
-    return -1;
+    return getCursorPosition(rows, cols);
   } else {
     *cols = ws.ws_col;
     *rows = ws.ws_row;
 
     return 0;
   }
+}
+
+int getCursorPosition(int *rows, int *cols)
+{
+  char ch;
+
+  if (write(STDOUT_FILENO, "\x1b[6n", 4) != 4) {
+    return -1;
+  }
+  printf("\r\n");
+
+  while (read(STDOUT_FILENO, &ch, 1) == 1) {
+    if (iscntrl(ch)) {
+      printf("%d\r\n", ch);
+    } else {
+      printf("%d ('%c')\r\n", ch, ch);
+    }
+  }
+
+  editorReadKey();
+
+  return -1;
 }
 /*** terminal end ***/
