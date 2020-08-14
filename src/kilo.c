@@ -21,7 +21,6 @@ int main(void)
 {
   enableRawMode();
 
-  char c;
   while (1) {
     char c = '\0';
     read(STDIN_FILENO, &c, 1);
