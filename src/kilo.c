@@ -30,6 +30,8 @@ void die(const char *s);
 char editorReadKey();
 
 void editorProcessKeypress();
+
+void editorRefreshScreen();
 /* }}} Function headers */
 
 /*** init ***/
@@ -38,6 +40,7 @@ int main(void)
   enableRawMode();
 
   while (1) {
+    editorRefreshScreen();
     editorProcessKeypress();
   }
 
@@ -57,6 +60,13 @@ void editorProcessKeypress()
   }
 }
 /*** input end ***/
+
+/*** output ***/
+void editorRefreshScreen()
+{
+  write(STDOUT_FILENO, "\x1b[2J", 4);
+}
+/*** output end ***/
 
 /*** terminal ***/
 char editorReadKey()
