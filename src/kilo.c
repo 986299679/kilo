@@ -187,20 +187,27 @@ int getWindowSize(int *rows, int *cols)
 
 int getCursorPosition(int *rows, int *cols)
 {
-  char ch;
+  char buf[32];
+  unsigned int i = 0;
 
   if (write(STDOUT_FILENO, "\x1b[6n", 4) != 4) {
     return -1;
   }
-  printf("\r\n");
 
-  while (read(STDOUT_FILENO, &ch, 1) == 1) {
-    if (iscntrl(ch)) {
-      printf("%d\r\n", ch);
-    } else {
-      printf("%d ('%c')\r\n", ch, ch);
+  while (i < sizeof(buf) - 1) {
+    if (read(STDIN_FILENO, &buf[i], 1) != 1) {
+      break;
     }
+
+    if (buf[i] == 'R') {
+      break;
+    }
+
+    i++;
   }
+
+  buf[i] = '\0';
+  printf("\r\n&buf[1]: '%s'\r\n", &buf[1]);
 
   editorReadKey();
 
