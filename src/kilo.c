@@ -2,7 +2,10 @@
  * @author: waves(GenmZy_)
  * Source: https://viewsourcecode.org/snaptoken/kilo/
  *****************************************************************************/
+
+/*** Includes ***/
 #include <ctype.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <termios.h>
@@ -15,15 +18,20 @@ struct termios orig_termios;
 void enableRawMode();
 
 void disableRawMode();
+
+void die(const char *s);
 /* }}} Function headers */
 
+/*** init ***/
 int main(void)
 {
   enableRawMode();
 
   while (1) {
     char c = '\0';
-    read(STDIN_FILENO, &c, 1);
+    if(read(STDIN_FILENO, &c, 1) == -1 && errno != EAGAIN) {
+      die("read");
+    }
 
     if (iscntrl(c)) {
       printf("%d\r\n", c);
@@ -39,9 +47,12 @@ int main(void)
   return 0;
 }
 
+/*** terminal ***/
 void enableRawMode()
 {
-  tcgetattr(STDIN_FILENO, &orig_termios);
+  if(tcgetattr(STDIN_FILENO, &orig_termios) == -1) {
+    die("tcsetattr");
+  }
   atexit(disableRawMode);
 
   struct termios raw = orig_termios;
@@ -58,5 +69,14 @@ void enableRawMode()
 
 void disableRawMode()
 {
-  tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
+  if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1) {
+    die("tcsetattr");
+  }
+}
+
+/*Add an die function to print the error messages*/
+void die(const char *s)
+{
+  perror(s);
+  exit(EXIT_FAILURE);
 }
