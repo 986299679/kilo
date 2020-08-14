@@ -10,12 +10,15 @@
 #include <stdlib.h>
 #include <termios.h>
 #include <unistd.h>
+/*** includes end ***/
 
 /*** defines ***/
 #define CTRL_KEY(k) ((k) & 0x1f)
+/*** defines end ***/
 
 /*** data ***/
 struct termios orig_termios; // Just to set original mode to variable to store
+/*** data end ***/
 
 /* Function headers {{{ */
 void enableRawMode();
@@ -23,6 +26,10 @@ void enableRawMode();
 void disableRawMode();
 
 void die(const char *s);
+
+char editorReadKey();
+
+void editorProcessKeypress();
 /* }}} Function headers */
 
 /*** init ***/
@@ -31,26 +38,41 @@ int main(void)
   enableRawMode();
 
   while (1) {
-    char c = '\0';
-    if(read(STDIN_FILENO, &c, 1) == -1 && errno != EAGAIN) {
-      die("read");
-    }
-
-    if (iscntrl(c)) {
-      printf("%d\r\n", c);
-    } else {
-      printf("%d (%c)\r\n", c, c);
-    }
-
-    if (c == CTRL_KEY('q')) {
-      break;
-    }
+    editorProcessKeypress();
   }
 
   return 0;
 }
+/*** init end ***/
+
+/*** input ***/
+void editorProcessKeypress()
+{
+  char c = editorReadKey();
+
+  switch (c) {
+    case CTRL('q'):
+      exit(0);
+      break;
+  }
+}
+/*** input end ***/
 
 /*** terminal ***/
+char editorReadKey()
+{
+  int nread;
+  char c;
+
+  while ((nread = read(STDIN_FILENO, &c, 1))) {
+    if (nread == -1 && errno != EAGAIN) {
+      die("read");
+    }
+  }
+
+  return c;
+}
+
 void enableRawMode()
 {
   if(tcgetattr(STDIN_FILENO, &orig_termios) == -1) {
@@ -83,3 +105,4 @@ void die(const char *s)
   perror(s);
   exit(EXIT_FAILURE);
 }
+/*** terminal end ***/
