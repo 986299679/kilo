@@ -3,7 +3,7 @@
  * Source: https://viewsourcecode.org/snaptoken/kilo/
  *****************************************************************************/
 
-/*** Includes ***/
+/*** includes ***/
 #include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
@@ -11,8 +11,11 @@
 #include <termios.h>
 #include <unistd.h>
 
-// Just to keep original mode to variable
-struct termios orig_termios;
+/*** defines ***/
+#define CTRL_KEY(k) ((k) & 0x1f)
+
+/*** data ***/
+struct termios orig_termios; // Just to set original mode to variable to store
 
 /* Function headers {{{ */
 void enableRawMode();
@@ -39,7 +42,7 @@ int main(void)
       printf("%d (%c)\r\n", c, c);
     }
 
-    if ('q' == c) {
+    if (c == CTRL_KEY('q')) {
       break;
     }
   }
