@@ -17,7 +17,8 @@
 /*** defines end ***/
 
 /*** data ***/
-struct termios orig_termios; // Just to set original mode to variable to store
+// Just to set original mode to variable to store
+struct termios orig_termios;
 /*** data end ***/
 
 /* Function headers {{{ */
@@ -64,7 +65,10 @@ void editorProcessKeypress()
 /*** output ***/
 void editorRefreshScreen()
 {
+  // Clean the screen
   write(STDOUT_FILENO, "\x1b[2J", 4);
+  // Reposition the cursor to the first line first char.
+  write(STDOUT_FILENO, "\x1b[H", 3);
 }
 /*** output end ***/
 
@@ -73,7 +77,7 @@ char editorReadKey()
 {
   int nread;
   char c;
-
+  // If want to return c normally, do not enter this loop
   while ((nread = read(STDIN_FILENO, &c, 1)) != 1) {
     if (nread == -1 && errno != EAGAIN) {
       die("read");
@@ -91,13 +95,17 @@ void enableRawMode()
   atexit(disableRawMode);
 
   struct termios raw = orig_termios;
-  raw.c_iflag &= ~(ICRNL | IXON | BRKINT | INPCK | ISTRIP); // Disable <C-s> and <C-q> so that can display it | Fix <C-m>
+  // Disable <C-s> and <C-q> so that can display it | Fix <C-m>
+  raw.c_iflag &= ~(ICRNL | IXON | BRKINT | INPCK | ISTRIP);
   raw.c_oflag &= ~(OPOST); // Make a \r\n
   raw.c_cflag |= ~(CS8);
-  raw.c_lflag &= ~(ECHO | ICANON | ISIG | IEXTEN); // Disable echo | Enable runtime refect | Disable <C-c> |
-                                                   // Disable <C-v>
-  raw.c_cc[VMIN] = 0;  // Set the mininal number of bytes of input needed for read(), 0 for return as soon when input.
-  raw.c_cc[VTIME] = 1; // Set the max time to wait for for read(), it is in tenth of a second, so 1 is 1/10 second.
+  // Disable echo | Enable runtime refect | Disable <C-c> | Disable <C-v>
+  raw.c_lflag &= ~(ECHO | ICANON | ISIG | IEXTEN);
+
+  raw.c_cc[VMIN] = 0; // Set the mininal number of bytes of input needed for
+                      // read(), 0 for return as soon when input.
+  raw.c_cc[VTIME] = 1; // Set the max time to wait for for read(),
+                       // it is in tenth of a second, so 1 is 1/10 second.
 
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
@@ -109,7 +117,7 @@ void disableRawMode()
   }
 }
 
-/*Add an die function to print the error messages*/
+// Add an die function to print the error messages
 void die(const char *s)
 {
   perror(s);
