@@ -166,8 +166,16 @@ int getWindowSize(int *rows, int *cols)
 {
   struct winsize ws;
 
+  // Easy way to get terminal window size, so need a backfall project
   // Function ioctl put the windows arguments to the struct ws, if fail, return -1
-  if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
+  if (1 || ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 ||
+      ws.ws_col == 0) { // Here `1||` is just for test, we will delete it later
+    if (write(STDOUT_FILENO, "\x1b[999C\x1b[999B", 12) != 12) {
+      return -1;
+    }
+    // Just to keep from return, here just for test can get to the right-battom corner
+    editorReadKey();
+
     return -1;
   } else {
     *cols = ws.ws_col;
