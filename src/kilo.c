@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>
 /*** includes end ***/
@@ -40,6 +41,8 @@ void editorProcessKeypress();
 void editorRefreshScreen();
 
 void editorDrawRows();
+
+int getWindowSize(int *rows, int *cols);
 /* }}} Function headers */
 
 /*** init ***/
@@ -145,5 +148,20 @@ void die(const char *s)
 
   perror(s);
   exit(EXIT_FAILURE);
+}
+
+int getWindowSize(int *rows, int *cols)
+{
+  struct winsize ws;
+
+  // Function ioctl put the windows arguments to the struct ws, if fail, return -1
+  if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
+    return -1;
+  } else {
+    *cols = ws.ws_col;
+    *rows = ws.ws_row;
+
+    return 0;
+  }
 }
 /*** terminal end ***/
