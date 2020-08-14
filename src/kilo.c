@@ -20,6 +20,8 @@
 /*** data ***/
 // Save editor state, for future, we will retain the arg like term-height
 struct editorConfig {
+  int screenrows;
+  int screencols;
   // Just to set original mode to variable to store
   struct termios orig_termios;
 };
@@ -43,12 +45,15 @@ void editorRefreshScreen();
 void editorDrawRows();
 
 int getWindowSize(int *rows, int *cols);
+
+void initEditor();
 /* }}} Function headers */
 
 /*** init ***/
 int main(void)
 {
   enableRawMode();
+  initEditor();
 
   while (1) {
     editorRefreshScreen();
@@ -56,6 +61,13 @@ int main(void)
   }
 
   return 0;
+}
+
+void initEditor()
+{
+  if (getWindowSize(&E.screenrows, &E.screencols) == -1) {
+    die("getWindowSize");
+  }
 }
 /*** init end ***/
 
@@ -89,7 +101,7 @@ void editorRefreshScreen()
 void editorDrawRows()
 {
   int y;
-  for (y = 0; y < 24; ++y) {
+  for (y = 0; y < E.screenrows; ++y) {
     write(STDOUT_FILENO, "~\r\n", 3);
   }
 }
