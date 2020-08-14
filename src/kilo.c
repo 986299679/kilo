@@ -17,8 +17,13 @@
 /*** defines end ***/
 
 /*** data ***/
-// Just to set original mode to variable to store
-struct termios orig_termios;
+// Save editor state, for future, we will retain the arg like term-height
+struct editorConfig {
+  // Just to set original mode to variable to store
+  struct termios orig_termios;
+};
+
+struct editorConfig E;
 /*** data end ***/
 
 /* Function headers {{{ */
@@ -104,12 +109,12 @@ char editorReadKey()
 
 void enableRawMode()
 {
-  if(tcgetattr(STDIN_FILENO, &orig_termios) == -1) {
+  if(tcgetattr(STDIN_FILENO, &E.orig_termios) == -1) {
     die("tcsetattr");
   }
   atexit(disableRawMode);
 
-  struct termios raw = orig_termios;
+  struct termios raw = E.orig_termios;
   // Disable <C-s> and <C-q> so that can display it | Fix <C-m>
   raw.c_iflag &= ~(ICRNL | IXON | BRKINT | INPCK | ISTRIP);
   raw.c_oflag &= ~(OPOST); // Make a \r\n
@@ -127,7 +132,7 @@ void enableRawMode()
 
 void disableRawMode()
 {
-  if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1) {
+  if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &E.orig_termios) == -1) {
     die("tcsetattr");
   }
 }
