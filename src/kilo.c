@@ -51,7 +51,7 @@ void editorProcessKeypress()
   char c = editorReadKey();
 
   switch (c) {
-    case CTRL('q'):
+    case CTRL_KEY('q'):
       exit(0);
       break;
   }
