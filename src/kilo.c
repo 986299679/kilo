@@ -33,6 +33,8 @@ char editorReadKey();
 void editorProcessKeypress();
 
 void editorRefreshScreen();
+
+void editorDrawRows();
 /* }}} Function headers */
 
 /*** init ***/
@@ -71,6 +73,17 @@ void editorRefreshScreen()
   write(STDOUT_FILENO, "\x1b[2J", 4);
   // Reposition the cursor to the first line first char.
   write(STDOUT_FILENO, "\x1b[H", 3);
+
+  editorDrawRows();
+  write(STDOUT_FILENO, "\x1b[H", 3);
+}
+
+void editorDrawRows()
+{
+  int y;
+  for (y = 0; y < 24; ++y) {
+    write(STDOUT_FILENO, "~\r\n", 3);
+  }
 }
 /*** output end ***/
 
