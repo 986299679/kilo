@@ -22,10 +22,11 @@
 /*** data ***/
 // Save editor state, for future, we will retain the arg like term-height
 struct editorConfig {
+  int cx, cy;                  // cursor positions
   int screenrows;
   int screencols;
-  // Just to set original mode to variable to store
-  struct termios orig_termios;
+
+  struct termios orig_termios; // Just to set original mode to variable to store
 };
 
 struct editorConfig E;
@@ -82,6 +83,8 @@ int main(void)
 
 void initEditor()
 {
+  E.cx = 0;
+  E.cy = 0;
   if (getWindowSize(&E.screenrows, &E.screencols) == -1) {
     die("getWindowSize");
   }
@@ -125,6 +128,7 @@ void editorProcessKeypress()
 /*** output ***/
 void editorRefreshScreen()
 {
+  char buf[32];
   struct abuf ab = ABUF_INIT;
 
   abAppend(&ab, "\x1b[?25l", 6); // Hide the cursor whne painting the `~`
@@ -132,7 +136,9 @@ void editorRefreshScreen()
 
   editorDrawRows(&ab);
 
-  abAppend(&ab, "\x1b[H", 3);
+  snprintf(buf, sizeof(buf), "\x1b[%d;%dH", E.cy + 1, E.cx + 1);
+  abAppend(&ab, buf, strlen(buf));
+
   abAppend(&ab, "\x1b[?25h", 6); // Show the cursor as long as painting finished
 
   write(STDOUT_FILENO, ab.b, ab.len);
