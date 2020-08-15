@@ -141,7 +141,7 @@ void editorDrawRows(struct abuf *buf)
   for (y = 0; y < E.screenrows; ++y) {
     abAppend(buf, "~", 1);
 
-    if (y < E.screenrows) {
+    if (y < E.screenrows - 1) {
       abAppend(buf, "\r\n", 2);
     }
   }
