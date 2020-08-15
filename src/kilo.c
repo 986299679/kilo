@@ -222,7 +222,39 @@ char editorReadKey()
     }
   }
 
-  return c;
+  if (c == '\x1b') {
+    char seq[3];
+
+    /*
+     * '\x1b[A' -> '\x1b[D' is arrow keys
+     * If read a '\x1b'(escape sequence), read two more char and put them into
+     * seq[2]. And if read() funtion cannot read other chars(may timeout), we
+     * think just escape key
+     */
+    if (read(STDIN_FILENO, &seq[0], 1) != 1) {
+      return '\x1b';
+    }
+    if (read(STDIN_FILENO, &seq[1], 1) != 1) {
+      return '\x1b';
+    }
+
+    if (seq[0] == '[') {
+      switch (seq[1]) {
+        case 'A':
+          return 'w';
+        case 'B':
+          return 's';
+        case 'C':
+          return 'd';
+        case 'D':
+          return 'a';
+      }
+    }
+
+    return '\x1b';
+  } else {
+    return c;
+  }
 }
 
 void enableRawMode()
