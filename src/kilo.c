@@ -16,6 +16,7 @@
 
 /*** defines ***/
 #define CTRL_KEY(k) ((k) & 0x1f)
+#define KILO_VERSION "0.0.1"
 /*** defines end ***/
 
 /*** data ***/
@@ -142,7 +143,18 @@ void editorDrawRows(struct abuf *buf)
 {
   int y;
   for (y = 0; y < E.screenrows; ++y) {
-    abAppend(buf, "~", 1);
+    if (y == E.screenrows / 3) {
+      char welcome[80];
+      int welcomelen = snprintf(welcome, sizeof(welcome),
+                                "Kilo editor --version %s", KILO_VERSION);
+
+      if (welcomelen > E.screenrows) {
+        welcomelen = E.screenrows;
+      }
+      abAppend(buf, welcome, welcomelen);
+    } else {
+      abAppend(buf, "~", 1);
+    }
 
     abAppend(buf, "\x1b[K", 3); // Erease part of current line
     if (y < E.screenrows - 1) {
