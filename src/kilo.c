@@ -65,6 +65,8 @@ int getCursorPosition(int *rows, int *cols);
 void abAppend(struct abuf *ab, const char *s, int len);
 
 void abFree(struct abuf *ab);
+
+void editorMoveCursor(char key);
 /* }}} Function headers */
 
 /*** init ***/
@@ -111,15 +113,42 @@ void abFree(struct abuf *ab)
 /*** append buffer end ***/
 
 /*** input ***/
+void editorMoveCursor(char key)
+{
+  switch (key) {
+    case 'w':
+      E.cy--;
+      break;
+    case 's':
+      E.cy++;
+      break;
+    case 'a':
+      E.cx--;
+      break;
+    case 'd':
+      E.cx++;
+      break;
+  }
+}
+
 void editorProcessKeypress()
 {
   char c = editorReadKey();
 
   switch (c) {
+    // quit:
     case CTRL_KEY('q'):
       write(STDOUT_FILENO, "\x1b[2J", 4);
       write(STDOUT_FILENO, "\x1b[H", 3);
       exit(0);
+      break;
+
+    // normal move:
+    case 'w':
+    case 'a':
+    case 'd':
+    case 's':
+      editorMoveCursor(c);
       break;
   }
 }
