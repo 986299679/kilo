@@ -52,7 +52,7 @@ void editorProcessKeypress();
 
 void editorRefreshScreen();
 
-void editorDrawRows();
+void editorDrawRows(struct abuf *buf);
 
 int getWindowSize(int *rows, int *cols);
 
@@ -124,23 +124,25 @@ void editorProcessKeypress()
 /*** output ***/
 void editorRefreshScreen()
 {
-  // Clean the screen
-  write(STDOUT_FILENO, "\x1b[2J", 4);
-  // Reposition the cursor to the first line first char.
-  write(STDOUT_FILENO, "\x1b[H", 3);
+  struct abuf ab = ABUF_INIT;
 
-  editorDrawRows();
-  write(STDOUT_FILENO, "\x1b[H", 3);
+  abAppend(&ab, "\x1b[2J", 4); // Clean the screen
+  abAppend(&ab, "\x1b[H", 3);  // Put the cursor to first line first character.
+
+  editorDrawRows(&ab);
+
+  abAppend(&ab, "\x1b[H", 3);
+  write(STDOUT_FILENO, ab.b, ab.len);
 }
 
-void editorDrawRows()
+void editorDrawRows(struct abuf *buf)
 {
   int y;
   for (y = 0; y < E.screenrows; ++y) {
-    write(STDOUT_FILENO, "~", 1);
+    abAppend(buf, "~", 1);
 
-    if (y < E.screenrows - 1) {
-      write(STDOUT_FILENO, "\r\n", 2);
+    if (y < E.screenrows) {
+      abAppend(buf, "\r\n", 2);
     }
   }
 }
