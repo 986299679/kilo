@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>
@@ -29,6 +30,15 @@ struct editorConfig {
 struct editorConfig E;
 /*** data end ***/
 
+/*** append buffer data ***/
+struct abuf {
+  char *b;
+  int len;
+};
+
+#define ABUF_INIT {NULL, 0}
+/*** append buffer end data ***/
+
 /* Function headers {{{ */
 void enableRawMode();
 
@@ -49,6 +59,10 @@ int getWindowSize(int *rows, int *cols);
 void initEditor();
 
 int getCursorPosition(int *rows, int *cols);
+
+void abAppend(struct abuf *ab, const char *s, int len);
+
+void abFree(struct abuf *ab);
 /* }}} Function headers */
 
 /*** init ***/
@@ -72,6 +86,25 @@ void initEditor()
   }
 }
 /*** init end ***/
+
+/*** append buffer ***/
+void abAppend(struct abuf *ab, const char *s, int len) 
+{
+  char *new = realloc(ab->b, ab->len + len);
+  if (!new) {
+    return;
+  }
+
+  memcpy(&new[ab->len], s, len);
+  ab->b = new;
+  ab->len += len;
+}
+
+void abFree(struct abuf *ab)
+{
+  free(ab->b);
+}
+/*** append buffer end ***/
 
 /*** input ***/
 void editorProcessKeypress()
