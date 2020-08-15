@@ -151,6 +151,17 @@ void editorDrawRows(struct abuf *buf)
       if (welcomelen > E.screenrows) {
         welcomelen = E.screenrows;
       }
+
+      // Pur the buf in the editor messages into the center of the line
+      int padding = (E.screencols - welcomelen) / 2;
+      if (padding) {
+        abAppend(buf, "~", 1);
+        padding--;
+      }
+      while (padding--) {
+        abAppend(buf, " ", 1);
+      }
+
       abAppend(buf, welcome, welcomelen);
     } else {
       abAppend(buf, "~", 1);
