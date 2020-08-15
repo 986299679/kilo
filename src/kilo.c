@@ -127,7 +127,6 @@ void editorRefreshScreen()
   struct abuf ab = ABUF_INIT;
 
   abAppend(&ab, "\x1b[?25l", 6); // Hide the cursor whne painting the `~`
-  abAppend(&ab, "\x1b[2J", 4); // Clean the screen
   abAppend(&ab, "\x1b[H", 3);  // Put the cursor to first line first character.
 
   editorDrawRows(&ab);
@@ -145,6 +144,7 @@ void editorDrawRows(struct abuf *buf)
   for (y = 0; y < E.screenrows; ++y) {
     abAppend(buf, "~", 1);
 
+    abAppend(buf, "\x1b[K", 3); // Erease part of current line
     if (y < E.screenrows - 1) {
       abAppend(buf, "\r\n", 2);
     }
