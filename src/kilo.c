@@ -18,15 +18,12 @@
 #define CTRL_KEY(k) ((k) & 0x1f)
 #define KILO_VERSION "0.0.1"
 
-/*! enum editorKey
- *
- *  The editor keys
- */
+// When the first enum is set to int, the others will increased automatically
 enum editorKey {
-  ARROW_LEFT = 'a',
-  ARROW_RIGHT = 'd',
-  ARROW_UP = 'w',
-  ARROW_DOWN = 's'
+  ARROW_LEFT = 1000, // 1000 stand for left
+  ARROW_RIGHT,
+  ARROW_UP,
+  ARROW_DOWN
 };
 /*** defines end ***/
 
@@ -59,7 +56,7 @@ void disableRawMode();
 
 void die(const char *s);
 
-char editorReadKey();
+int editorReadKey();
 
 void editorProcessKeypress();
 
@@ -77,7 +74,7 @@ void abAppend(struct abuf *ab, const char *s, int len);
 
 void abFree(struct abuf *ab);
 
-void editorMoveCursor(char key);
+void editorMoveCursor(int key);
 /* }}} Function headers */
 
 /*** init ***/
@@ -124,7 +121,7 @@ void abFree(struct abuf *ab)
 /*** append buffer end ***/
 
 /*** input ***/
-void editorMoveCursor(char key)
+void editorMoveCursor(int key)
 {
   switch (key) {
     case ARROW_UP:
@@ -144,7 +141,7 @@ void editorMoveCursor(char key)
 
 void editorProcessKeypress()
 {
-  char c = editorReadKey();
+  int c = editorReadKey();
 
   switch (c) {
     // quit:
@@ -222,7 +219,7 @@ void editorDrawRows(struct abuf *buf)
 /*** output end ***/
 
 /*** terminal ***/
-char editorReadKey()
+int editorReadKey()
 {
   int nread;
   char c;
