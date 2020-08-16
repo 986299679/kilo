@@ -24,6 +24,8 @@ enum editorKey {
   ARROW_RIGHT,
   ARROW_UP,
   ARROW_DOWN,
+  HOME,
+  END,
   PAGE_UP,
   PAGE_DOWN
 };
@@ -179,6 +181,14 @@ void editorProcessKeypress()
     case ARROW_DOWN:
       editorMoveCursor(c);
       break;
+
+    // END/HOME:
+    case HOME:
+      E.cx = 0;
+      break;
+    case END:
+      E.cx = E.screencols - 1;
+      break;
   }
 }
 /*** input end ***/
@@ -274,10 +284,18 @@ int editorReadKey()
         }
         if (seq[2] == '~') {
           switch (seq[1]) {
+            case '1':
+              return HOME;
+            case '4':
+              return END;
             case '5':
               return PAGE_UP;   // PAGE_UP is "\x1b[5~"
             case '6':
               return PAGE_DOWN; // PAGE_DOWN is "\x1b[6~"
+            case '7':
+              return HOME;
+            case '8':
+              return END;
           }
         }
       } else {
@@ -290,7 +308,18 @@ int editorReadKey()
           return ARROW_RIGHT;
         case 'D':
           return ARROW_LEFT;
+        case 'F':
+          return END;
+        case 'H':
+          return HOME;
         }
+      }
+    } else if (seq[0] == 'O') {
+      switch (seq[1]) {
+        case 'H':
+          return HOME;
+        case 'F':
+          return END;
       }
     }
 
