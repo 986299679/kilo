@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include <sys/types.h>
 #include <termios.h>
 #include <unistd.h>
 /*** includes end ***/
@@ -33,12 +34,21 @@ enum editorKey {
 /*** defines end ***/
 
 /*** data ***/
+typedef struct erow {
+  int size;
+  char *chars;
+} Erow;
+
 // Save editor state, for future, we will retain the arg like term-height
 struct editorConfig {
+  /*cursor position*/
   int cx, cy;                  // cursor positions
   int screenrows;
   int screencols;
-
+  /*line viewer*/
+  int numrows;
+  Erow row;
+  /*terminal args*/
   struct termios orig_termios; // Just to set original mode to variable to store
 };
 
@@ -80,6 +90,8 @@ void abAppend(struct abuf *ab, const char *s, int len);
 void abFree(struct abuf *ab);
 
 void editorMoveCursor(int key);
+
+void editorOpen();
 /* }}} Function headers */
 
 /*** init ***/
@@ -87,6 +99,7 @@ int main(void)
 {
   enableRawMode();
   initEditor();
+  editorOpen();
 
   while (1) {
     editorRefreshScreen();
@@ -100,6 +113,8 @@ void initEditor()
 {
   E.cx = 0;
   E.cy = 0;
+  E.numrows = 0;
+
   if (getWindowSize(&E.screenrows, &E.screencols) == -1) {
     die("getWindowSize");
   }
@@ -214,32 +229,41 @@ void editorRefreshScreen()
   abFree(&ab); // Do not forget to free
 }
 
+// Put all the chars that should be print to a buf
 void editorDrawRows(struct abuf *buf)
 {
   int y;
   for (y = 0; y < E.screenrows; ++y) {
-    if (y == E.screenrows / 3) {
-      char welcome[80];
-      int welcomelen = snprintf(welcome, sizeof(welcome),
-                                "Kilo editor --version %s", KILO_VERSION);
+    if (y >= E.numrows) {
+      if (y == E.screenrows / 3) {
+        char welcome[80];
+        int welcomelen = snprintf(welcome, sizeof(welcome),
+                                  "Kilo editor --version %s", KILO_VERSION);
+        if (welcomelen > E.screenrows) {
+          welcomelen = E.screenrows;
+        }
 
-      if (welcomelen > E.screenrows) {
-        welcomelen = E.screenrows;
-      }
+        // Pur the buf in the editor messages into the center of the line
+        int padding = (E.screencols - welcomelen) / 2;
+        if (padding) {
+          abAppend(buf, "~", 1);
+          padding--;
+        }
+        while (padding--) {
+          abAppend(buf, " ", 1);
+        }
 
-      // Pur the buf in the editor messages into the center of the line
-      int padding = (E.screencols - welcomelen) / 2;
-      if (padding) {
+        abAppend(buf, welcome, welcomelen);
+      } else {
         abAppend(buf, "~", 1);
-        padding--;
       }
-      while (padding--) {
-        abAppend(buf, " ", 1);
+    } else {
+      int len = E.row.size;
+      if (len > E.screencols) {
+        len = E.screencols;
       }
 
-      abAppend(buf, welcome, welcomelen);
-    } else {
-      abAppend(buf, "~", 1);
+      abAppend(buf, E.row.chars, len);
     }
 
     abAppend(buf, "\x1b[K", 3); // Erease part of current line
@@ -249,6 +273,20 @@ void editorDrawRows(struct abuf *buf)
   }
 }
 /*** output end ***/
+
+/***file I/O***/
+void editorOpen()
+{
+  char *line = "Hello, world!";
+  ssize_t linelen = 13;
+
+  E.row.size = linelen;
+  E.row.chars = malloc(linelen + 1);
+  memcpy(E.row.chars, line, linelen);
+  E.row.chars[linelen] = '\0';
+  E.numrows = 1;
+}
+/***file I/O end ***/
 
 /*** terminal ***/
 int editorReadKey()
