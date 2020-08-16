@@ -23,7 +23,9 @@ enum editorKey {
   ARROW_LEFT = 1000, // 1000 stand for left
   ARROW_RIGHT,
   ARROW_UP,
-  ARROW_DOWN
+  ARROW_DOWN,
+  PAGE_UP,
+  PAGE_DOWN
 };
 /*** defines end ***/
 
@@ -125,7 +127,7 @@ void editorMoveCursor(int key)
 {
   switch (key) {
     case ARROW_UP:
-      if (E.cx != 0) {
+      if (E.cy != 0) {
         E.cy--;
       }
       break;
@@ -157,6 +159,17 @@ void editorProcessKeypress()
       write(STDOUT_FILENO, "\x1b[2J", 4);
       write(STDOUT_FILENO, "\x1b[H", 3);
       exit(0);
+      break;
+
+    // PAGE_UP/PAGE_DOWN:
+    case PAGE_UP:
+    case PAGE_DOWN:
+      {
+        int times = E.screenrows;
+        while (--times) {
+          editorMoveCursor(c == PAGE_UP ? ARROW_UP : ARROW_DOWN);
+        }
+      }
       break;
 
     // normal move:
@@ -255,7 +268,20 @@ int editorReadKey()
     }
 
     if (seq[0] == '[') {
-      switch (seq[1]) {
+      if (seq[1] >= '0' && seq[1] <= '9') {
+        if (read(STDIN_FILENO, &seq[2], 1) != 1) {
+          return '\x1b';
+        }
+        if (seq[2] == '~') {
+          switch (seq[1]) {
+            case '5':
+              return PAGE_UP;   // PAGE_UP is "\x1b[5~"
+            case '6':
+              return PAGE_DOWN; // PAGE_DOWN is "\x1b[6~"
+          }
+        }
+      } else {
+        switch (seq[1]) {
         case 'A':
           return ARROW_UP;
         case 'B':
@@ -264,6 +290,7 @@ int editorReadKey()
           return ARROW_RIGHT;
         case 'D':
           return ARROW_LEFT;
+        }
       }
     }
 
