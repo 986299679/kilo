@@ -4,6 +4,12 @@
  *****************************************************************************/
 
 /*** includes ***/
+// for using getline
+#define _DEFAULT_SOURCE
+#define _BSD_SOURCE
+#define _GNU_SOURCE
+
+// general including
 #include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
@@ -91,15 +97,17 @@ void abFree(struct abuf *ab);
 
 void editorMoveCursor(int key);
 
-void editorOpen();
+void editorOpen(char *filename);
 /* }}} Function headers */
 
 /*** init ***/
-int main(void)
+int main(int argc, char *argv[])
 {
   enableRawMode();
   initEditor();
-  editorOpen();
+  if (argc >= 2) {
+    editorOpen(argv[1]);
+  }
 
   while (1) {
     editorRefreshScreen();
@@ -275,16 +283,32 @@ void editorDrawRows(struct abuf *buf)
 /*** output end ***/
 
 /***file I/O***/
-void editorOpen()
+void editorOpen(char *filename)
 {
-  char *line = "Hello, world!";
-  ssize_t linelen = 13;
+  FILE *fp = fopen(filename, "r");
+  char *line = NULL;
+  size_t line_cap = 0;
+  ssize_t linelen;
 
-  E.row.size = linelen;
-  E.row.chars = malloc(linelen + 1);
-  memcpy(E.row.chars, line, linelen);
-  E.row.chars[linelen] = '\0';
-  E.numrows = 1;
+  if (!fp) {
+    die("fopen");
+  }
+
+  linelen = getline(&line, &line_cap, fp); // Put line
+  if (-1 != linelen) {
+    while (linelen > 0 &&
+           ('\n' == line[linelen - 1] || '\r' == line[linelen - 1])) {
+      linelen--;
+    }
+    E.row.size = linelen;
+    E.row.chars = malloc(linelen + 1);
+    memcpy(E.row.chars, line, linelen);
+    E.row.chars[linelen] = '\0';
+    E.numrows = 1;
+  }
+
+  free(line);
+  fclose(fp);
 }
 /***file I/O end ***/
 
