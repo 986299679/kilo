@@ -49,6 +49,7 @@ typedef struct erow {
 struct editorConfig {
   /*cursor position*/
   int cx, cy;                  // cursor positions
+  int rowoff;
   int screenrows;
   int screencols;
   /*line viewer*/
@@ -100,6 +101,8 @@ void editorMoveCursor(int key);
 void editorOpen(char *filename);
 
 void editorAppendRow(char *s, size_t len);
+
+void editorScroll();
 /* }}} Function headers */
 
 /*** init ***/
@@ -123,6 +126,7 @@ void initEditor()
 {
   E.cx = 0;
   E.cy = 0;
+  E.rowoff = 0;
   E.numrows = 0;
   E.row = NULL;
 
@@ -133,7 +137,7 @@ void initEditor()
 /*** init end ***/
 
 /*** append buffer ***/
-void abAppend(struct abuf *ab, const char *s, int len) 
+void abAppend(struct abuf *ab, const char *s, int len)
 {
   char *new = realloc(ab->b, ab->len + len);
   if (!new) {
@@ -161,7 +165,7 @@ void editorMoveCursor(int key)
       }
       break;
     case ARROW_DOWN:
-      if (E.cy != E.screenrows - 1) {
+      if (E.cy < E.numrows) {
         E.cy++;
       }
       break;
@@ -226,12 +230,13 @@ void editorRefreshScreen()
   char buf[32];
   struct abuf ab = ABUF_INIT;
 
-  abAppend(&ab, "\x1b[?25l", 6); // Hide the cursor whne painting the `~`
+  editorScroll();
+  abAppend(&ab, "\x1b[?25l", 6); // Hide the cursor when painting the `~`
   abAppend(&ab, "\x1b[H", 3);  // Put the cursor to first line first character.
 
   editorDrawRows(&ab);
 
-  snprintf(buf, sizeof(buf), "\x1b[%d;%dH", E.cy + 1, E.cx + 1);
+  snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (E.cy - E.rowoff) + 1, E.cx + 1);
   abAppend(&ab, buf, strlen(buf));
 
   abAppend(&ab, "\x1b[?25h", 6); // Show the cursor as long as painting finished
@@ -245,7 +250,8 @@ void editorDrawRows(struct abuf *buf)
 {
   int y;
   for (y = 0; y < E.screenrows; ++y) {
-    if (y >= E.numrows) {
+    int filerow = y + E.rowoff;
+    if (filerow >= E.numrows) {
       if (E.numrows == 0 && y == E.screenrows / 3) {
         char welcome[80];
         int welcomelen = snprintf(welcome, sizeof(welcome),
@@ -269,18 +275,31 @@ void editorDrawRows(struct abuf *buf)
         abAppend(buf, "~", 1);
       }
     } else {
-      int len = E.row[y].size;
+      int len = E.row[filerow].size;
       if (len > E.screencols) {
         len = E.screencols;
       }
 
-      abAppend(buf, E.row[y].chars, len);
+      abAppend(buf, E.row[filerow].chars, len);
     }
 
     abAppend(buf, "\x1b[K", 3); // Erease part of current line
     if (y < E.screenrows - 1) {
       abAppend(buf, "\r\n", 2);
     }
+  }
+}
+
+// scroll the editor output
+void editorScroll()
+{
+  // Check if the cursor above the window
+  if (E.cy < E.rowoff) {
+    E.rowoff = E.cy;
+  }
+  // Check if the cursor bottom the the screen
+  if (E.cy >= E.rowoff + E.screenrows) {
+    E.rowoff = E.cy - E.screenrows + 1;
   }
 }
 /*** output end ***/
@@ -299,7 +318,7 @@ void editorAppendRow(char *s, size_t len)
 }
 /*** row operations end ***/
 
-/***file I/O***/
+/*** file I/O ***/
 void editorOpen(char *filename)
 {
   FILE *fp = fopen(filename, "r");
@@ -322,7 +341,7 @@ void editorOpen(char *filename)
   free(line);
   fclose(fp);
 }
-/***file I/O end ***/
+/*** file I/O end ***/
 
 /*** terminal ***/
 int editorReadKey()
