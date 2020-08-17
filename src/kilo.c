@@ -186,6 +186,14 @@ void editorMoveCursor(int key)
       }
       break;
   }
+
+  // If the cursor on the right edge of previous line, when move its next line,
+  // if next line is shorter than the previous one, jump to the last character
+  row = (E.cy >= E.numrows) ? NULL : &E.row[E.cy];
+  int rowlen = row ? row->size : 0;
+  if (E.cx > rowlen) {
+    E.cx = rowlen;
+  }
 }
 
 void editorProcessKeypress()
