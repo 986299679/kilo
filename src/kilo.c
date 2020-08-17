@@ -53,7 +53,7 @@ struct editorConfig {
   int screencols;
   /*line viewer*/
   int numrows;
-  Erow row;
+  Erow *row;
   /*terminal args*/
   struct termios orig_termios; // Just to set original mode to variable to store
 };
@@ -98,6 +98,8 @@ void abFree(struct abuf *ab);
 void editorMoveCursor(int key);
 
 void editorOpen(char *filename);
+
+void editorAppendRow(char *s, size_t len);
 /* }}} Function headers */
 
 /*** init ***/
@@ -122,6 +124,7 @@ void initEditor()
   E.cx = 0;
   E.cy = 0;
   E.numrows = 0;
+  E.row = NULL;
 
   if (getWindowSize(&E.screenrows, &E.screencols) == -1) {
     die("getWindowSize");
@@ -266,12 +269,12 @@ void editorDrawRows(struct abuf *buf)
         abAppend(buf, "~", 1);
       }
     } else {
-      int len = E.row.size;
+      int len = E.row[y].size;
       if (len > E.screencols) {
         len = E.screencols;
       }
 
-      abAppend(buf, E.row.chars, len);
+      abAppend(buf, E.row[y].chars, len);
     }
 
     abAppend(buf, "\x1b[K", 3); // Erease part of current line
@@ -281,6 +284,20 @@ void editorDrawRows(struct abuf *buf)
   }
 }
 /*** output end ***/
+
+/*** row operations ***/
+void editorAppendRow(char *s, size_t len)
+{
+  E.row = realloc(E.row, sizeof(Erow) * (E.numrows + 1));
+
+  int at = E.numrows;
+  E.row[at].size = len;
+  E.row[at].chars = malloc(len + 1);
+  memcpy(E.row[at].chars, s, len);
+  E.row[at].chars[len] = '\0';
+  E.numrows++;
+}
+/*** row operations end ***/
 
 /***file I/O***/
 void editorOpen(char *filename)
@@ -294,17 +311,12 @@ void editorOpen(char *filename)
     die("fopen");
   }
 
-  linelen = getline(&line, &line_cap, fp); // Put line
-  if (-1 != linelen) {
+  while ((linelen = getline(&line, &line_cap, fp)) != -1) {
     while (linelen > 0 &&
            ('\n' == line[linelen - 1] || '\r' == line[linelen - 1])) {
       linelen--;
     }
-    E.row.size = linelen;
-    E.row.chars = malloc(linelen + 1);
-    memcpy(E.row.chars, line, linelen);
-    E.row.chars[linelen] = '\0';
-    E.numrows = 1;
+    editorAppendRow(line, linelen);
   }
 
   free(line);
