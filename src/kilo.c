@@ -162,6 +162,7 @@ void editorMoveCursor(int key)
 {
   // priority from high to low is:   .[]*&   so: &((E.row)[E.cy])
   // TODO: So, what is this???
+  // Judge if cursor is in an actual line
   Erow *row = (E.cy >= E.numrows) ? NULL : &E.row[E.cy];
 
   switch (key) {
@@ -178,11 +179,17 @@ void editorMoveCursor(int key)
     case ARROW_LEFT:
       if (E.cx != 0) {
         E.cx--;
+      } else if (E.cy > 0) {
+        E.cy--;
+        E.cx = E.row[E.cy].size;
       }
       break;
     case ARROW_RIGHT:
       if (row && E.cx < row->size) {
         E.cx++;
+      } else if (row && E.cx == row->size) { // E.cy < E.numrows
+        E.cy++;
+        E.cx = 0;
       }
       break;
   }
