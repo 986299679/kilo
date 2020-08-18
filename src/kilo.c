@@ -50,7 +50,7 @@ typedef struct erow {
 // Save editor state, for future, we will retain the arg like term-height
 struct editorConfig {
   /*cursor position*/
-  int cx, cy;                  // cursor positions
+  int cx, cy;
   int rowoff;
   int coloff;
   int screenrows;
@@ -165,8 +165,8 @@ void abFree(struct abuf *ab)
 void editorMoveCursor(int key)
 {
   // priority from high to low is:   .[]*&   so: &((E.row)[E.cy])
-  // TODO: So, what is this???
-  // Judge if cursor is in an actual line
+  // As we realloc this row, use multi, so it is a `E.row` can regard as array
+  // now. Judge if cursor is in an actual line
   Erow *row = (E.cy >= E.numrows) ? NULL : &E.row[E.cy];
 
   switch (key) {
