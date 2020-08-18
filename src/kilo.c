@@ -52,6 +52,7 @@ typedef struct erow {
 struct editorConfig {
   /*cursor position*/
   int cx, cy;
+  int rx;
   int rowoff;
   int coloff;
   int screenrows;
@@ -109,6 +110,8 @@ void editorAppendRow(char *s, size_t len);
 void editorScroll();
 
 void editorUpdateRow(Erow *row);
+
+int editorRowCxToRx(Erow *row, int cx);
 /* }}} Function headers */
 
 /*** init ***/
@@ -132,6 +135,7 @@ void initEditor()
 {
   E.cx = 0;
   E.cy = 0;
+  E.rx = 0;
   E.rowoff = 0;
   E.coloff = 0;
   E.numrows = 0;
@@ -224,6 +228,15 @@ void editorProcessKeypress()
     case PAGE_UP:
     case PAGE_DOWN:
       {
+        if (c == PAGE_UP) {
+          E.cy = E.rowoff;
+        } else if(c == PAGE_DOWN) {
+          E.cy = E.rowoff + E.screenrows - 1;
+          if (E.cy > E.numrows) {
+            E.cy = E.numrows;
+          }
+        }
+
         int times = E.screenrows;
         while (--times) {
           editorMoveCursor(c == PAGE_UP ? ARROW_UP : ARROW_DOWN);
@@ -244,7 +257,9 @@ void editorProcessKeypress()
       E.cx = 0;
       break;
     case END:
-      E.cx = E.screencols - 1;
+      if (E.cy < E.numrows) {
+        E.cx = E.row[E.cy].size;
+      }
       break;
   }
 }
@@ -262,7 +277,8 @@ void editorRefreshScreen()
 
   editorDrawRows(&ab);
 
-  snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (E.cy - E.rowoff) + 1, (E.cx - E.coloff) + 1);
+  snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (E.cy - E.rowoff) + 1,
+                                            (E.rx - E.coloff) + 1);
   abAppend(&ab, buf, strlen(buf));
 
   abAppend(&ab, "\x1b[?25h", 6); // Show the cursor as long as painting finished
@@ -322,6 +338,11 @@ void editorDrawRows(struct abuf *buf)
 // scroll the editor output
 void editorScroll()
 {
+  E.rx = 0;
+  if (E.cy < E.numrows) {
+    E.rx = editorRowCxToRx(&E.row[E.cy], E.cx);
+  }
+
   // Check if the cursor above the window
   if (E.cy < E.rowoff) {
     E.rowoff = E.cy;
@@ -331,10 +352,10 @@ void editorScroll()
     E.rowoff = E.cy - E.screenrows + 1;
   }
   if (E.cx < E.coloff) {
-    E.coloff = E.cx;
+    E.coloff = E.rx;
   }
   if (E.cx >= E.coloff + E.screencols) {
-    E.coloff = E.cx - E.screencols + 1;
+    E.coloff = E.rx - E.screencols + 1;
   }
 }
 /*** output end ***/
@@ -383,6 +404,21 @@ void editorAppendRow(char *s, size_t len)
   editorUpdateRow(&E.row[at]);
 
   E.numrows++;
+}
+
+int editorRowCxToRx(Erow *row, int cx)
+{
+  int rx = 0;
+  int j;
+
+  for (j = 0; j < cx; ++j) {
+    if (row->chars[j] == '\t') {
+      rx += (KILO_TAB_STOP - 1) - (rx % KILO_TAB_STOP);
+    }
+    rx++;
+  }
+
+  return rx;
 }
 /*** row operations end ***/
 
