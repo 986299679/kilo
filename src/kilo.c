@@ -12,12 +12,14 @@
 // general including
 #include <ctype.h>
 #include <errno.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <termios.h>
+#include <time.h>
 #include <unistd.h>
 /*** includes end ***/
 
@@ -25,6 +27,7 @@
 #define CTRL_KEY(k) ((k) & 0x1f)
 #define KILO_VERSION "0.0.1"
 #define KILO_TAB_STOP 8
+#define MSG_TIMEOUT 5
 
 // When the first enum is set to int, the others will increased automatically
 enum editorKey {
@@ -60,10 +63,12 @@ struct editorConfig {
   /*line viewer*/
   int numrows;
   Erow *row;
-  /*terminal args*/
-  struct termios orig_termios; // Just to set original mode to variable to store
   /* status bar arguments */
   char *filename;
+  char statusmsg[80];
+  time_t statusmsg_time;
+  /*terminal args*/
+  struct termios orig_termios; // Just to set original mode to variable to store
 };
 
 struct editorConfig E;
@@ -116,6 +121,10 @@ void editorUpdateRow(Erow *row);
 int editorRowCxToRx(Erow *row, int cx);
 
 void editorDrawStatusBar(struct abuf *ab);
+
+void editorSetStatusMessage(const char *fmt, ...);
+
+void editorDrawMessageBar(struct abuf *ab);
 /* }}} Function headers */
 
 /*** init ***/
@@ -126,6 +135,8 @@ int main(int argc, char *argv[])
   if (argc >= 2) {
     editorOpen(argv[1]);
   }
+
+  editorSetStatusMessage("HELP: <C-q> quit Kilo.");
 
   while (1) {
     editorRefreshScreen();
@@ -145,12 +156,14 @@ void initEditor()
   E.numrows = 0;
   E.row = NULL;
   E.filename = NULL;
+  E.statusmsg[0] = '\0';
+  E.statusmsg_time = 0;
 
   if (getWindowSize(&E.screenrows, &E.screencols) == -1) {
     die("getWindowSize");
   }
 
-  E.screenrows -= 1; // Leave one line for status bar
+  E.screenrows -= 2; // Leave one line for status bar
 }
 /*** init end ***/
 
@@ -284,6 +297,7 @@ void editorRefreshScreen()
 
   editorDrawRows(&ab);
   editorDrawStatusBar(&ab);
+  editorDrawMessageBar(&ab);
 
   snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (E.cy - E.rowoff) + 1,
                                             (E.rx - E.coloff) + 1);
@@ -365,6 +379,7 @@ void editorDrawStatusBar(struct abuf *ab)
     }
   }
   abAppend(ab, "\x1b[m", 3);
+  abAppend(ab, "\r\n", 2);
 }
 
 // scroll the editor output
@@ -388,6 +403,30 @@ void editorScroll()
   }
   if (E.cx >= E.coloff + E.screencols) {
     E.coloff = E.rx - E.screencols + 1;
+  }
+}
+
+void editorSetStatusMessage(const char *fmt, ...)
+{
+  va_list ap;
+
+  va_start(ap, fmt);
+  vsnprintf(E.statusmsg, sizeof(E.statusmsg), fmt, ap);
+  va_end(ap);
+
+  E.statusmsg_time = time(NULL);
+}
+
+void editorDrawMessageBar(struct abuf *ab)
+{
+  abAppend(ab, "\x1b[K", 3);
+  int msglen = strlen(E.statusmsg);
+
+  if (msglen > E.screencols) {
+    msglen = E.screencols;
+  }
+  if (msglen && time(NULL) - E.statusmsg_time < MSG_TIMEOUT) {
+    abAppend(ab, E.statusmsg, msglen);
   }
 }
 /*** output end ***/
