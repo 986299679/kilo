@@ -62,6 +62,8 @@ struct editorConfig {
   Erow *row;
   /*terminal args*/
   struct termios orig_termios; // Just to set original mode to variable to store
+  /* status bar arguments */
+  char *filename;
 };
 
 struct editorConfig E;
@@ -112,6 +114,8 @@ void editorScroll();
 void editorUpdateRow(Erow *row);
 
 int editorRowCxToRx(Erow *row, int cx);
+
+void editorDrawStatusBar(struct abuf *ab);
 /* }}} Function headers */
 
 /*** init ***/
@@ -140,10 +144,13 @@ void initEditor()
   E.coloff = 0;
   E.numrows = 0;
   E.row = NULL;
+  E.filename = NULL;
 
   if (getWindowSize(&E.screenrows, &E.screencols) == -1) {
     die("getWindowSize");
   }
+
+  E.screenrows -= 1; // Leave one line for status bar
 }
 /*** init end ***/
 
@@ -276,6 +283,7 @@ void editorRefreshScreen()
   abAppend(&ab, "\x1b[H", 3);  // Put the cursor to first line first character.
 
   editorDrawRows(&ab);
+  editorDrawStatusBar(&ab);
 
   snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (E.cy - E.rowoff) + 1,
                                             (E.rx - E.coloff) + 1);
@@ -329,10 +337,28 @@ void editorDrawRows(struct abuf *buf)
     }
 
     abAppend(buf, "\x1b[K", 3); // Erease part of current line
-    if (y < E.screenrows - 1) {
-      abAppend(buf, "\r\n", 2);
-    }
+    abAppend(buf, "\r\n", 2);
   }
+}
+
+void editorDrawStatusBar(struct abuf *ab)
+{
+  char status[80];
+  int len = snprintf(status, sizeof(status), "%.20s - %d lines",
+                     E.filename ? E.filename : "[NO NAME]", E.numrows);
+
+  if (len > E.screencols) {
+    len = E.screencols;
+  }
+
+  // <esc>[7m can invert colors, <esc>[m siwtch back to normal formatting
+  abAppend(ab, "\x1b[7m", 4);
+  abAppend(ab, status, len);
+  while (len < E.screencols) {
+    abAppend(ab, " ", 1);
+    len++;
+  }
+  abAppend(ab, "\x1b[m", 3);
 }
 
 // scroll the editor output
@@ -433,6 +459,9 @@ void editorOpen(char *filename)
   if (!fp) {
     die("fopen");
   }
+
+  free(E.filename);
+  E.filename = strdup(filename);
 
   while ((linelen = getline(&line, &line_cap, fp)) != -1) {
     while (linelen > 0 &&
