@@ -12,6 +12,7 @@
 // general including
 #include <ctype.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -130,6 +131,10 @@ void editorDrawMessageBar(struct abuf *ab);
 void editorRowInsertChar(Erow *row, int at, int c);
 
 void editorInsertChar(int c);
+
+char *editorRowsToString(int *buflen);
+
+void editorSave();
 /* }}} Function headers */
 
 /*** init ***/
@@ -563,6 +568,48 @@ void editorOpen(char *filename)
 
   free(line);
   fclose(fp);
+}
+
+// pointer buflen just get the lenth of buf
+char *editorRowsToString(int *buflen)
+{
+  int j;
+  int totlen = 0;
+  char *p;
+  char *buf;
+
+  for (j = 0; j < E.numrows; j++) {
+    totlen += E.row[j].size + 1; // Add 1 is to add '\r' or '\n'
+  }
+
+  *buflen = totlen;
+  buf = malloc(totlen);
+  p = buf;
+
+  for (j = 0; j < E.numrows; ++j) {
+    memcpy(p, E.row[j].chars, E.row[j].size);
+    p += E.row[j].size;
+    *p = '\n';
+    p++;
+  }
+
+  return buf;
+}
+
+void editorSave()
+{
+  if (E.filename == NULL) {
+    return;
+  }
+
+  int len;
+  char *buf = editorRowsToString(&len);
+  int fd = open(E.filename, O_RDWR | O_CREAT, 0644);
+
+  ftruncate(fd, len);
+  write(fd, buf, len);
+  close(fd);
+  free(buf);
 }
 /*** file I/O end ***/
 
