@@ -125,6 +125,10 @@ void editorDrawStatusBar(struct abuf *ab);
 void editorSetStatusMessage(const char *fmt, ...);
 
 void editorDrawMessageBar(struct abuf *ab);
+
+void editorRowInsertChar(Erow *row, int at, int c);
+
+void editorInsertChar(int c);
 /* }}} Function headers */
 
 /*** init ***/
@@ -136,7 +140,7 @@ int main(int argc, char *argv[])
     editorOpen(argv[1]);
   }
 
-  editorSetStatusMessage("HELP: <C-q> quit Kilo.");
+  editorSetStatusMessage("HELP ~> <C-q> quit Kilo.");
 
   while (1) {
     editorRefreshScreen();
@@ -280,6 +284,10 @@ void editorProcessKeypress()
       if (E.cy < E.numrows) {
         E.cx = E.row[E.cy].size;
       }
+      break;
+
+    default:
+      editorInsertChar(c);
       break;
   }
 }
@@ -490,6 +498,28 @@ int editorRowCxToRx(Erow *row, int cx)
   }
 
   return rx;
+}
+
+// Insert a char to place that cursor hold.
+void editorRowInsertChar(Erow *row, int at, int c)
+{
+  if (at < 0 || at > row->size) {
+    at = row->size;
+  }
+  row->chars = realloc(row->chars, row->size + 2);
+  memmove(&row->chars[at + 1], &row->chars[at], row->size - at);
+  row->size++;
+  row->chars[at] = c;
+  editorUpdateRow(row);
+}
+
+void editorInsertChar(int c)
+{
+  if (E.cy == E.numrows) {
+    editorAppendRow("", 0);
+  }
+  editorRowInsertChar(&E.row[E.cy], E.cx, c);
+  E.cy++;
 }
 /*** row operations end ***/
 
