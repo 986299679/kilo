@@ -31,6 +31,7 @@
 
 // When the first enum is set to int, the others will increased automatically
 enum editorKey {
+  BACKSPACE = 127,
   ARROW_LEFT = 1000, // 1000 stand for left
   ARROW_RIGHT,
   ARROW_UP,
@@ -241,6 +242,10 @@ void editorProcessKeypress()
   int c = editorReadKey();
 
   switch (c) {
+    case '\r':
+      /*TODO: Complete later*/
+      break;
+
     // quit:
     case CTRL_KEY('q'):
       write(STDOUT_FILENO, "\x1b[2J", 4);
@@ -284,6 +289,16 @@ void editorProcessKeypress()
       if (E.cy < E.numrows) {
         E.cx = E.row[E.cy].size;
       }
+      break;
+
+    case BACKSPACE:
+    case CTRL_KEY('h'):
+    case DELETE:
+      /* TODO: Complete later */
+      break;
+
+    case CTRL_KEY('l'):
+    case '\x1b':
       break;
 
     default:
@@ -519,7 +534,7 @@ void editorInsertChar(int c)
     editorAppendRow("", 0);
   }
   editorRowInsertChar(&E.row[E.cy], E.cx, c);
-  E.cy++;
+  E.cx++;
 }
 /*** row operations end ***/
 
