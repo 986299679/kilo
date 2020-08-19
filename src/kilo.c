@@ -53,7 +53,7 @@ typedef struct erow {
   char *render; // row render
 } Erow;
 
-// Save editor state, for future, we will retain the arg like term-height
+// Store editor state, for future, we will retain the arg like term-height
 struct editorConfig {
   /*cursor position*/
   int cx, cy;
@@ -256,6 +256,10 @@ void editorProcessKeypress()
       write(STDOUT_FILENO, "\x1b[2J", 4);
       write(STDOUT_FILENO, "\x1b[H", 3);
       exit(0);
+      break;
+
+    case CTRL_KEY('s'):
+      editorSave();
       break;
 
     // PAGE_UP/PAGE_DOWN:
