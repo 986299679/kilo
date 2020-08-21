@@ -146,7 +146,7 @@ int main(int argc, char *argv[])
     editorOpen(argv[1]);
   }
 
-  editorSetStatusMessage("HELP ~> <C-q> quit Kilo.");
+  editorSetStatusMessage("Kilo Help:<C-q> ~~> quit | <C-s> ~~> save.");
 
   while (1) {
     editorRefreshScreen();
@@ -609,11 +609,21 @@ void editorSave()
   int len;
   char *buf = editorRowsToString(&len);
   int fd = open(E.filename, O_RDWR | O_CREAT, 0644);
+  if (fd != -1) {
+    if (ftruncate(fd, len) != -1) {
+      if (write(fd, buf, len) == len) {
+        close(fd);
+        free(buf);
+        editorSetStatusMessage("%d bytes written to disk.", len);
+        return;
+      }
+    }
 
-  ftruncate(fd, len);
-  write(fd, buf, len);
-  close(fd);
+    close(fd);
+  }
+
   free(buf);
+  editorSetStatusMessage("Can't save! I/O error: %s", strerror(errno));
 }
 /*** file I/O end ***/
 
