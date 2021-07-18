@@ -19,6 +19,7 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <termios.h>
 #include <time.h>
 #include <unistd.h>
@@ -138,6 +139,10 @@ void editorInsertChar(int c);
 char *editorRowsToString(int *buflen);
 
 void editorSave();
+
+void editorRowDelChar(Erow *row, int at);
+
+void editorDelChar();
 /* }}} Function headers */
 
 /*** init ***/
@@ -315,7 +320,10 @@ void editorProcessKeypress()
     case BACKSPACE:
     case CTRL_KEY('h'):
     case DELETE:
-      /* TODO: Complete later */
+      if (c == DELETE) {
+        editorMoveCursor(ARROW_LEFT);
+      }
+      editorDelChar();
       break;
 
     case CTRL_KEY('l'):
@@ -561,6 +569,30 @@ void editorInsertChar(int c)
   }
   editorRowInsertChar(&E.row[E.cy], E.cx, c);
   E.cx++;
+}
+
+void editorRowDelChar(Erow *row, int at)
+{
+  if (at < 0 || at >= row->size) {
+    return;
+  }
+
+  memmove(&row->chars[at], &row->chars[at + 1], row->size - 1); // Move current at to at+1;
+  row->size--;
+  editorUpdateRow(row);
+  E.dirty++;
+}
+
+void editorDelChar()
+{
+  if (E.cx == 0 && E.cy == 0) {
+    return;
+  }
+
+  if (E.cx > 0) {
+    editorRowDelChar(&E.row[E.cy], E.cx - 1);
+    E.cx--;
+  }
 }
 /*** row operations end ***/
 
